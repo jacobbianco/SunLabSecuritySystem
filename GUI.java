@@ -8,7 +8,14 @@ import java.util.ArrayList;
 import javax.swing.*;
 
 public class GUI {
+	
+	static int screenWidth;
+	static int screenHeight;
+	
 	public static void main (String args[]) {
+		
+		screenWidth = java.awt.Toolkit.getDefaultToolkit().getScreenSize().width;
+		screenHeight = java.awt.Toolkit.getDefaultToolkit().getScreenSize().height;
 		
 		//Create frame
 		JFrame frame = new JFrame();
@@ -32,16 +39,16 @@ public class GUI {
 		topPanel.setBackground(Color.white);
 		topPanel.add(heading, BorderLayout.CENTER);
 		
-		//Create top panel
-		JPanel midPanel = new JPanel (new FlowLayout(FlowLayout.CENTER, 100, 10));
-		midPanel.setBackground(Color.LIGHT_GRAY);
+		//Create mid panel
+		JPanel midPanel = new JPanel (new FlowLayout(FlowLayout.LEFT, 20, 10));
+		midPanel.setBackground(Color.white);
 		
 		//Create left panel and all of it's contents
 		JPanel leftPanel = new JPanel (new BorderLayout(10,10));
 		leftPanel.setBackground(Color.white);
 		midPanel.add(leftPanel);
 		
-		JLabel leftSubheading = new JLabel ("                                  Manage Users");
+		JLabel leftSubheading = new JLabel ("                             Manage Users");
 		leftSubheading.setFont(new Font("Serif", Font.BOLD, 30));
 		leftPanel.add(leftSubheading, BorderLayout.NORTH);
 		
@@ -50,10 +57,9 @@ public class GUI {
 		
 		JScrollPane leftScrollPane = new JScrollPane(renderUsers(userArray));
 		leftScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
-		leftScrollPane.setPreferredSize(new Dimension(800, 850));
 		leftScrollPane.setBackground(Color.WHITE);
+		leftScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
 		leftScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		leftScrollPane.updateUI();
 		
 		leftPanel.add(leftScrollPane);
 		leftPanel.updateUI();
@@ -63,7 +69,7 @@ public class GUI {
 		rightPanel.setBackground(Color.white);
 		midPanel.add(rightPanel);
 		
-		JLabel rightSubheading = new JLabel ("                                     View History");
+		JLabel rightSubheading = new JLabel ("                                View History");
 		rightSubheading.setFont(new Font("Serif", Font.BOLD, 30));
 		rightPanel.add(rightSubheading, BorderLayout.NORTH);
 		
@@ -72,10 +78,9 @@ public class GUI {
 		
 		JScrollPane rightScrollPane = new JScrollPane(renderUserHistory(userLogArray));
 		rightScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
-		rightScrollPane.setPreferredSize(new Dimension(800, 850));
 		rightScrollPane.setBackground(Color.WHITE);
+		rightScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
 		rightScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		rightScrollPane.updateUI();
 		
 		rightPanel.add(rightScrollPane);
 		rightPanel.updateUI();
@@ -93,7 +98,7 @@ public class GUI {
 		
 		JPanel userListPanel = new JPanel(new FlowLayout());	
 		userListPanel.setBackground(Color.white);
-		userListPanel.setPreferredSize(new Dimension(800, 1000));		
+		userListPanel.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight+150));		
 		
 		JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 		headerPanel.setBackground(Color.white);
@@ -110,7 +115,7 @@ public class GUI {
 		
 		JLabel headerId = new JLabel("     ID");
 		headerId.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerId.setPreferredSize(new Dimension(100, 30));
+		headerId.setPreferredSize(new Dimension(50, 30));
 		headerPanel.add((headerId));
 		
 		JLabel headerButtonLabel = new JLabel("     Toggle Access");
@@ -138,7 +143,7 @@ public class GUI {
 			
 			JLabel id = new JLabel(((Integer.toString(user.id))));
 			id.setFont(new Font("Serif", Font.PLAIN, 20));
-			id.setPreferredSize(new Dimension(100, 30));
+			id.setPreferredSize(new Dimension(50, 30));
 			userPanel.add((id));
 			
 			JButton hasAccess = new JButton("Click to disable access");
@@ -162,7 +167,7 @@ public class GUI {
 		
 		JPanel userListPanel = new JPanel(new FlowLayout());	
 		userListPanel.setBackground(Color.white);
-		userListPanel.setPreferredSize(new Dimension(800, 1000));	
+		userListPanel.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight+150));	
 		
 		JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 		headerPanel.setBackground(Color.white);
@@ -174,17 +179,17 @@ public class GUI {
 		
 		JLabel headerType = new JLabel("In/Out");
 		headerType.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerType.setPreferredSize(new Dimension(100, 30));
+		headerType.setPreferredSize(new Dimension(50, 30));
 		headerPanel.add((headerType));
 		
 		JLabel headerId = new JLabel("ID");
 		headerId.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerId.setPreferredSize(new Dimension(100, 30));
+		headerId.setPreferredSize(new Dimension(50, 30));
 		headerPanel.add((headerId));
 		
 		JLabel headerButtonLabel = new JLabel("Timestamp");
 		headerButtonLabel.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerButtonLabel.setPreferredSize(new Dimension(250, 30));
+		headerButtonLabel.setPreferredSize(new Dimension(200, 30));
 		headerPanel.add((headerButtonLabel));
 
 		userListPanel.add(headerPanel);
@@ -203,17 +208,17 @@ public class GUI {
 			
 			JLabel in_out = new JLabel(log.in_out);
 			in_out.setFont(new Font("Serif", Font.PLAIN, 20));
-			in_out.setPreferredSize(new Dimension(100, 30));
+			in_out.setPreferredSize(new Dimension(50, 30));
 			userPanel.add((in_out));
 			
 			JLabel id = new JLabel(((Integer.toString(log.id))));
 			id.setFont(new Font("Serif", Font.PLAIN, 20));
-			id.setPreferredSize(new Dimension(100, 30));
+			id.setPreferredSize(new Dimension(50, 30));
 			userPanel.add((id));
 			
 			JLabel ts = new JLabel(log.timestamp);
 			ts.setFont(new Font("Serif", Font.PLAIN, 20));
-			ts.setPreferredSize(new Dimension(250, 30));
+			ts.setPreferredSize(new Dimension(200, 30));
 			userPanel.add((ts));
 			
 			userListPanel.add(userPanel);
