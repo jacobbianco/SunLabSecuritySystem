@@ -1,21 +1,48 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridLayout;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
-
 import javax.swing.*;
+
+import com.google.firebase.cloud.FirestoreClient;
+import com.google.api.core.ApiFuture;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QuerySnapshot;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+
 
 public class GUI {
 	
 	static int screenWidth;
 	static int screenHeight;
 	
-	public static void main (String args[]) {
+	static ArrayList<User> userArray;
+	static ArrayList<UserLog> userLogArray;
+	
+	static ArrayList<User> filteredUserArray;
+	static ArrayList<UserLog> filteredUserLogArray;
+	
+	public static void main (String args[]) throws Exception {
 		
+		//Set screen width and height
 		screenWidth = java.awt.Toolkit.getDefaultToolkit().getScreenSize().width;
 		screenHeight = java.awt.Toolkit.getDefaultToolkit().getScreenSize().height;
+		
+		//Initialize db and retrieve data
+		Firestore db = initializeDb();
+		userArray = getUsers(db);
+		userLogArray = getUserHistory(db);
+		filteredUserArray = userArray;
+		filteredUserLogArray = userLogArray;
+	
 		
 		//Create frame
 		JFrame frame = new JFrame();
@@ -48,14 +75,14 @@ public class GUI {
 		leftPanel.setBackground(Color.white);
 		midPanel.add(leftPanel);
 		
-		JLabel leftSubheading = new JLabel ("                             Manage Users");
+		JLabel leftSubheading = new JLabel ("Manage Users");
 		leftSubheading.setFont(new Font("Serif", Font.BOLD, 30));
-		leftPanel.add(leftSubheading, BorderLayout.NORTH);
+		JPanel leftSubheadingContainer = new JPanel();
+		leftSubheadingContainer.setBackground(Color.white);
+		leftSubheadingContainer.add(leftSubheading);
+		leftPanel.add(leftSubheadingContainer, BorderLayout.NORTH);
 		
-		ArrayList<User> userArray = new ArrayList<User>();
-		for(int i = 0; i< 10; i++) userArray.add(new User("Jacob Bianco", 1, false, "Student"));
-		
-		JScrollPane leftScrollPane = new JScrollPane(renderUsers(userArray));
+		JScrollPane leftScrollPane = new JScrollPane(renderUsers(filteredUserArray));
 		leftScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
 		leftScrollPane.setBackground(Color.WHITE);
 		leftScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
@@ -69,14 +96,20 @@ public class GUI {
 		rightPanel.setBackground(Color.white);
 		midPanel.add(rightPanel);
 		
-		JLabel rightSubheading = new JLabel ("                                View History");
+		JLabel rightSubheading = new JLabel ("View History");
 		rightSubheading.setFont(new Font("Serif", Font.BOLD, 30));
-		rightPanel.add(rightSubheading, BorderLayout.NORTH);
+		JPanel rightSubheadingContainer = new JPanel();
+		rightSubheadingContainer.setBackground(Color.white);
+		rightSubheadingContainer.add(rightSubheading);
+		rightPanel.add(rightSubheadingContainer, BorderLayout.NORTH);
 		
-		ArrayList<UserLog> userLogArray = new ArrayList<UserLog>();
-		for(int i = 0; i< 10; i++) userLogArray.add(new UserLog("Jacob Bianco", "In", "2018-09-01 09:01:15", 1));
+		JButton filterButton = new JButton("Filter");
+		filterButton.setFont(new Font("Serif", Font.PLAIN, 15));
+		filterButton.setPreferredSize(new Dimension(100,30));
+		filterButton.addActionListener(e -> filterButtonPressed());
+		rightSubheadingContainer.add(filterButton);
 		
-		JScrollPane rightScrollPane = new JScrollPane(renderUserHistory(userLogArray));
+		JScrollPane rightScrollPane = new JScrollPane(renderUserHistory(filteredUserLogArray));
 		rightScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
 		rightScrollPane.setBackground(Color.WHITE);
 		rightScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
@@ -93,6 +126,67 @@ public class GUI {
 		
 	}
 	
+	private static void filterButtonPressed() {
+		//Create frame
+		JFrame filterFrame = new JFrame();
+		filterFrame.setSize(new Dimension(400,300));
+		filterFrame.setLocationRelativeTo(null);
+		filterFrame.setBackground(Color.WHITE);
+		
+		//Create panel
+		JPanel mainPanel = new JPanel(new GridLayout(4,1));
+		mainPanel.setBackground(Color.WHITE);
+		
+		JLabel idLabel = new JLabel("Filter by id:");
+		idLabel.setFont(new Font("Serif", Font.PLAIN, 20));
+		JTextField id = new JTextField(4);
+		id.setPreferredSize(new Dimension(30,30));
+		id.setFont(new Font("Serif", Font.PLAIN, 20));
+		JPanel idContainer = new JPanel();
+		idContainer.setBackground(Color.WHITE);
+		idContainer.add(idLabel);
+		idContainer.add(id);
+		mainPanel.add(idContainer);
+		
+		JLabel dateLabel = new JLabel("Filter by date:");
+		dateLabel.setFont(new Font("Serif", Font.PLAIN, 20));
+		JTextField date = new JTextField(8);
+		date.setPreferredSize(new Dimension(50,30));
+		date.setFont(new Font("Serif", Font.PLAIN, 20));
+		JPanel dateContainer = new JPanel();
+		dateContainer.setBackground(Color.WHITE);
+		dateContainer.add(dateLabel);
+		dateContainer.add(date);
+		mainPanel.add(dateContainer);
+		
+		JLabel timeLabel = new JLabel("Filter by time:");
+		timeLabel.setFont(new Font("Serif", Font.PLAIN, 20));
+		JTextField time = new JTextField(8);
+		time.setPreferredSize(new Dimension(50,30));
+		time.setFont(new Font("Serif", Font.PLAIN, 20));
+		JPanel timeContainer = new JPanel();
+		timeContainer.setBackground(Color.WHITE);
+		timeContainer.add(timeLabel);
+		timeContainer.add(time);
+		mainPanel.add(timeContainer);
+		
+		JButton submitButton = new JButton("Submit");
+		submitButton.setFont(new Font("Serif", Font.PLAIN, 15));
+		submitButton.setPreferredSize(new Dimension(100,30));
+		submitButton.addActionListener(e -> filterResults());
+		JPanel buttonContainer = new JPanel();
+		buttonContainer.setBackground(Color.WHITE);
+		buttonContainer.add(submitButton);
+		mainPanel.add(buttonContainer);
+		
+		filterFrame.add(mainPanel);
+		filterFrame.setVisible(true);
+	}
+
+	//work on filter function
+	private static void filterResults() {
+	}
+
 	//Render the list of users
 	public static JPanel renderUsers(ArrayList<User> userArray){
 		
@@ -139,18 +233,20 @@ public class GUI {
 			JLabel type = new JLabel(user.type);
 			type.setFont(new Font("Serif", Font.PLAIN, 20));
 			type.setPreferredSize(new Dimension(150, 30));
-			userPanel.add((type));
+			userPanel.add(type);
 			
 			JLabel id = new JLabel(((Integer.toString(user.id))));
 			id.setFont(new Font("Serif", Font.PLAIN, 20));
 			id.setPreferredSize(new Dimension(50, 30));
-			userPanel.add((id));
+			userPanel.add(id);
 			
 			JButton hasAccess = new JButton("Click to disable access");
 			hasAccess.setBackground(Color.GREEN);
+			hasAccess.setFont(new Font("Serif", Font.PLAIN, 15));
 			
 			JButton noAccess = new JButton("Click to enable access");
 			noAccess.setBackground(Color.RED);
+			noAccess.setFont(new Font("Serif", Font.PLAIN, 15));
 			
 			if(user.access) userPanel.add(hasAccess); 
 			else userPanel.add(noAccess);	
@@ -158,10 +254,10 @@ public class GUI {
 			userListPanel.add(userPanel);
 		}
 		
-		userListPanel.updateUI();
 		return userListPanel;
 	}
 	
+
 	//Render the list of user logs
 	public static JPanel renderUserHistory(ArrayList<UserLog> userLogArray){
 		
@@ -216,16 +312,57 @@ public class GUI {
 			id.setPreferredSize(new Dimension(50, 30));
 			userPanel.add((id));
 			
-			JLabel ts = new JLabel(log.timestamp);
+			JLabel ts = new JLabel((log.timestamp).toString().substring(0, 19));
 			ts.setFont(new Font("Serif", Font.PLAIN, 20));
 			ts.setPreferredSize(new Dimension(200, 30));
 			userPanel.add((ts));
 			
 			userListPanel.add(userPanel);
 		}
-		
-		userListPanel.updateUI();
+
 		return userListPanel;
 	}
+
+	//Get list of users from DB
+	@SuppressWarnings("deprecation")
+	public static ArrayList<User> getUsers(Firestore db) throws Exception{
+		
+		// Create arraylist to be populated
+		ArrayList<User> userList = new ArrayList<User>();
+
+		// asynchronously retrieve all documents
+		ApiFuture<QuerySnapshot> future = db.collection("Users").get();
+		future.get().getDocuments().forEach(item -> {
+			userList.add(item.toObject(User.class));
+		});
+
+		return userList;
+	}
 	
+	//Get list of users logs from DB
+	public static ArrayList<UserLog> getUserHistory(Firestore db) throws Exception{
+		
+		//Create arraylist to be populated
+		ArrayList<UserLog> userLogList = new ArrayList<UserLog>();
+
+		// asynchronously retrieve all documents
+		ApiFuture<QuerySnapshot> future = db.collection("Access").get();
+		future.get().getDocuments().forEach(item -> {
+			userLogList.add(item.toObject(UserLog.class));
+		});
+
+		return userLogList;
+	}
+
+	@SuppressWarnings("deprecation")
+	private static Firestore initializeDb() throws Exception {
+		// Use a service account to connect to DB
+				FileInputStream serviceAccount = new FileInputStream("wproject1-c76c6-firebase-adminsdk-mtqki-9b61264bd2.json");
+				GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
+				FirebaseOptions options = new FirebaseOptions.Builder().setCredentials(credentials).build();
+				FirebaseApp.initializeApp(options);
+				Firestore db = FirestoreClient.getFirestore();
+		return db;
+	}
+
 }
