@@ -6,8 +6,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
+
 import javax.swing.*;
 
 import com.google.firebase.cloud.FirestoreClient;
@@ -24,11 +24,19 @@ public class GUI {
 	static int screenWidth;
 	static int screenHeight;
 	
+	//Need these to be static so they can be accessed throughout the whole class
 	static ArrayList<User> userArray;
 	static ArrayList<UserLog> userLogArray;
 	
 	static ArrayList<User> filteredUserArray;
 	static ArrayList<UserLog> filteredUserLogArray;
+	
+	static JScrollPane leftScrollPane;
+	static JScrollPane rightScrollPane;
+	
+	static JPanel leftPanel;
+	static JPanel rightPanel;
+	
 	
 	public static void main (String args[]) throws Exception {
 		
@@ -51,11 +59,7 @@ public class GUI {
 	    frame.setTitle("Sun Lab Security System");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setBackground(Color.WHITE);
-		try { 
-		    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e) {
-		    e.printStackTrace();
-		}
+		UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		
 		//Create heading
 		JLabel heading = new JLabel ("Sun Lab Security System");
@@ -71,7 +75,7 @@ public class GUI {
 		midPanel.setBackground(Color.white);
 		
 		//Create left panel and all of it's contents
-		JPanel leftPanel = new JPanel (new BorderLayout(10,10));
+		leftPanel = new JPanel (new BorderLayout(10,10));
 		leftPanel.setBackground(Color.white);
 		midPanel.add(leftPanel);
 		
@@ -82,7 +86,7 @@ public class GUI {
 		leftSubheadingContainer.add(leftSubheading);
 		leftPanel.add(leftSubheadingContainer, BorderLayout.NORTH);
 		
-		JScrollPane leftScrollPane = new JScrollPane(renderUsers(filteredUserArray));
+		leftScrollPane = new JScrollPane(renderUsers(filteredUserArray));
 		leftScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
 		leftScrollPane.setBackground(Color.WHITE);
 		leftScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
@@ -92,7 +96,7 @@ public class GUI {
 		leftPanel.updateUI();
 		
 		//Create right panel and all of it's contents
-		JPanel rightPanel = new JPanel (new BorderLayout(10,10));
+		rightPanel = new JPanel (new BorderLayout(10,10));
 		rightPanel.setBackground(Color.white);
 		midPanel.add(rightPanel);
 		
@@ -109,7 +113,13 @@ public class GUI {
 		filterButton.addActionListener(e -> filterButtonPressed());
 		rightSubheadingContainer.add(filterButton);
 		
-		JScrollPane rightScrollPane = new JScrollPane(renderUserHistory(filteredUserLogArray));
+		JButton undoButton = new JButton("Undo Filter");
+		undoButton.setFont(new Font("Serif", Font.PLAIN, 15));
+		undoButton.setPreferredSize(new Dimension(100,30));
+		undoButton.addActionListener(e -> undoButtonPressed());
+		rightSubheadingContainer.add(undoButton);
+		
+		rightScrollPane = new JScrollPane(renderUserHistory(filteredUserLogArray));
 		rightScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
 		rightScrollPane.setBackground(Color.WHITE);
 		rightScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
@@ -122,22 +132,46 @@ public class GUI {
 		frame.add(topPanel, BorderLayout.NORTH);
 		frame.add(midPanel, BorderLayout.CENTER);
 		
-	    frame.setVisible(true); 
+	    frame.setVisible(true);
 		
 	}
 	
+	//Work on toggle button then done
+	
+	//Undo filter
+	private static void undoButtonPressed() {
+			filteredUserLogArray = userLogArray;
+			//Add old info to scrollpane and update the panel
+			rightPanel.remove(rightScrollPane);
+			rightScrollPane = new JScrollPane(renderUserHistory(filteredUserLogArray));
+			rightScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
+			rightScrollPane.setBackground(Color.WHITE);
+			rightScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
+			rightScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+			rightPanel.add(rightScrollPane);
+			rightPanel.updateUI();
+	}
+
+	//Create frame to let user filter
 	private static void filterButtonPressed() {
 		//Create frame
 		JFrame filterFrame = new JFrame();
-		filterFrame.setSize(new Dimension(400,300));
+		filterFrame.setSize(new Dimension(500,300));
 		filterFrame.setLocationRelativeTo(null);
 		filterFrame.setBackground(Color.WHITE);
 		
 		//Create panel
-		JPanel mainPanel = new JPanel(new GridLayout(4,1));
+		JPanel mainPanel = new JPanel(new GridLayout(5,1));
 		mainPanel.setBackground(Color.WHITE);
 		
-		JLabel idLabel = new JLabel("Filter by id:");
+		JLabel headerLabel = new JLabel("Note: You may either filter by ID, filter by date, or filter by date and time");
+		headerLabel.setFont(new Font("Serif", Font.BOLD, 15));
+		JPanel headerContainer = new JPanel();
+		headerContainer.setBackground(Color.WHITE);
+		headerContainer.add(headerLabel);
+		mainPanel.add(headerContainer);
+		
+		JLabel idLabel = new JLabel("        Filter by ID( Ex: 1 ):");
 		idLabel.setFont(new Font("Serif", Font.PLAIN, 20));
 		JTextField id = new JTextField(4);
 		id.setPreferredSize(new Dimension(30,30));
@@ -148,7 +182,7 @@ public class GUI {
 		idContainer.add(id);
 		mainPanel.add(idContainer);
 		
-		JLabel dateLabel = new JLabel("Filter by date:");
+		JLabel dateLabel = new JLabel("Filter by date( Ex: 2023-08-24 ):");
 		dateLabel.setFont(new Font("Serif", Font.PLAIN, 20));
 		JTextField date = new JTextField(8);
 		date.setPreferredSize(new Dimension(50,30));
@@ -159,7 +193,7 @@ public class GUI {
 		dateContainer.add(date);
 		mainPanel.add(dateContainer);
 		
-		JLabel timeLabel = new JLabel("Filter by time:");
+		JLabel timeLabel = new JLabel("    Filter by time( Ex: 16:45:12 ):");
 		timeLabel.setFont(new Font("Serif", Font.PLAIN, 20));
 		JTextField time = new JTextField(8);
 		time.setPreferredSize(new Dimension(50,30));
@@ -173,7 +207,7 @@ public class GUI {
 		JButton submitButton = new JButton("Submit");
 		submitButton.setFont(new Font("Serif", Font.PLAIN, 15));
 		submitButton.setPreferredSize(new Dimension(100,30));
-		submitButton.addActionListener(e -> filterResults());
+		submitButton.addActionListener(e -> filterResults(id.getText().trim(), date.getText().trim(), time.getText().trim(), filterFrame));
 		JPanel buttonContainer = new JPanel();
 		buttonContainer.setBackground(Color.WHITE);
 		buttonContainer.add(submitButton);
@@ -183,8 +217,47 @@ public class GUI {
 		filterFrame.setVisible(true);
 	}
 
-	//work on filter function
-	private static void filterResults() {
+	//Filters userLogs
+	@SuppressWarnings("deprecation")
+	private static void filterResults(String id, String date, String time, JFrame filterFrame) {
+		
+		ArrayList<UserLog> newArray = new ArrayList<UserLog>();
+		if(id.length() > 0 && date.length() == 0 & time.length() == 0) filteredUserLogArray.forEach(item -> {
+			if((Integer.toString(item.id).equals(id))) newArray.add(item);
+		});
+		else if(date.length() > 0 && time.length() == 0 & id.length() == 0 ) filteredUserLogArray.forEach(item -> {
+			if(item.timestamp.toString().substring(0, 10).equals(date)) 
+				if(!newArray.contains(item)) newArray.add(item);
+		});
+		//Note: need to convert in funky way because google FB has 4 hour offset in time
+		else if(time.length() > 0 && date.length() > 0 && id.length() == 0) filteredUserLogArray.forEach(item -> {
+			String userTs = "" + date + " " + time; 
+			java.sql.Timestamp ts = java.sql.Timestamp.valueOf(userTs);
+			if(item.in_out.equals("In") && ts.getTime() > item.timestamp.toSqlTimestamp().getTime() + 14400000) {
+				filteredUserLogArray.forEach(element -> {
+					if(element.in_out.equals("Out") && (item.id == element.id) && ts.getTime() < element.timestamp.toSqlTimestamp().getTime() + 14400000) {
+						System.out.println(id.toString());
+						System.out.println(element.toString());
+						System.out.println();
+						if(!newArray.contains(item)) newArray.add(item);
+						if(!newArray.contains(element)) newArray.add(element);
+					}
+					});
+			}
+		});
+		else return;
+		
+		filteredUserLogArray = newArray;
+		//Add new info to scrollpane and update the panel
+		rightPanel.remove(rightScrollPane);
+		rightScrollPane = new JScrollPane(renderUserHistory(filteredUserLogArray));
+		rightScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); 
+		rightScrollPane.setBackground(Color.WHITE);
+		rightScrollPane.setPreferredSize(new Dimension((int) (screenWidth/2.1), screenHeight));
+		rightScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		rightPanel.add(rightScrollPane);
+		rightPanel.updateUI();
+		filterFrame.dispose();
 	}
 
 	//Render the list of users
@@ -257,7 +330,6 @@ public class GUI {
 		return userListPanel;
 	}
 	
-
 	//Render the list of user logs
 	public static JPanel renderUserHistory(ArrayList<UserLog> userLogArray){
 		
@@ -354,14 +426,14 @@ public class GUI {
 		return userLogList;
 	}
 
-	@SuppressWarnings("deprecation")
+		@SuppressWarnings("deprecation")
 	private static Firestore initializeDb() throws Exception {
 		// Use a service account to connect to DB
-				FileInputStream serviceAccount = new FileInputStream("wproject1-c76c6-firebase-adminsdk-mtqki-9b61264bd2.json");
-				GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
-				FirebaseOptions options = new FirebaseOptions.Builder().setCredentials(credentials).build();
-				FirebaseApp.initializeApp(options);
-				Firestore db = FirestoreClient.getFirestore();
+		FileInputStream serviceAccount = new FileInputStream("wproject1-c76c6-firebase-adminsdk-mtqki-9b61264bd2.json");
+		GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
+		FirebaseOptions options = new FirebaseOptions.Builder().setCredentials(credentials).build();
+		FirebaseApp.initializeApp(options);
+		Firestore db = FirestoreClient.getFirestore();
 		return db;
 	}
 
