@@ -7,6 +7,8 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.*;
 
@@ -15,8 +17,15 @@ import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
+import com.google.cloud.firestore.WriteBatch;
+import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 
 
 public class GUI {
@@ -37,6 +46,10 @@ public class GUI {
 	static JPanel leftPanel;
 	static JPanel rightPanel;
 	
+	static Firestore db;
+	
+	//Create log in panel and student view, then done 
+	
 	
 	public static void main (String args[]) throws Exception {
 		
@@ -45,7 +58,7 @@ public class GUI {
 		screenHeight = java.awt.Toolkit.getDefaultToolkit().getScreenSize().height;
 		
 		//Initialize db and retrieve data
-		Firestore db = initializeDb();
+		db = initializeDb();
 		userArray = getUsers(db);
 		userLogArray = getUserHistory(db);
 		filteredUserArray = userArray;
@@ -135,8 +148,6 @@ public class GUI {
 	    frame.setVisible(true);
 		
 	}
-	
-	//Work on toggle button then done
 	
 	//Undo filter
 	private static void undoButtonPressed() {
@@ -275,14 +286,14 @@ public class GUI {
 		headerName.setPreferredSize(new Dimension(200, 30));
 		headerPanel.add(headerName);
 		
-		JLabel headerType = new JLabel("     Type");
+		JLabel headerType = new JLabel("        Type");
 		headerType.setFont(new Font("Serif", Font.PLAIN, 20));
 		headerType.setPreferredSize(new Dimension(150, 30));
 		headerPanel.add((headerType));
 		
-		JLabel headerId = new JLabel("     ID");
+		JLabel headerId = new JLabel("       ID");
 		headerId.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerId.setPreferredSize(new Dimension(50, 30));
+		headerId.setPreferredSize(new Dimension(100, 30));
 		headerPanel.add((headerId));
 		
 		JLabel headerButtonLabel = new JLabel("     Toggle Access");
@@ -305,21 +316,50 @@ public class GUI {
 			
 			JLabel type = new JLabel(user.type);
 			type.setFont(new Font("Serif", Font.PLAIN, 20));
-			type.setPreferredSize(new Dimension(150, 30));
+			type.setPreferredSize(new Dimension(100, 30));
 			userPanel.add(type);
 			
 			JLabel id = new JLabel(((Integer.toString(user.id))));
 			id.setFont(new Font("Serif", Font.PLAIN, 20));
-			id.setPreferredSize(new Dimension(50, 30));
+			id.setPreferredSize(new Dimension(100, 30));
 			userPanel.add(id);
 			
-			JButton hasAccess = new JButton("Click to disable access");
-			hasAccess.setBackground(Color.GREEN);
+			JButton noAccess = new JButton("Click to enable access");
+			JButton hasAccess = new JButton("Click to disable access"); 
+			
+			hasAccess.setBackground(Color.RED);
 			hasAccess.setFont(new Font("Serif", Font.PLAIN, 15));
 			
-			JButton noAccess = new JButton("Click to enable access");
-			noAccess.setBackground(Color.RED);
+			//Set listener for button
+			hasAccess.addActionListener(e -> {
+				try {
+					//Toggle the access
+					toggleUserAccess(user.id, false); 
+					//Switch the button and update the UI
+					userPanel.remove(hasAccess);
+					userPanel.add(noAccess);
+					userPanel.updateUI();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			});
+			
+			noAccess.setBackground(Color.GREEN);
 			noAccess.setFont(new Font("Serif", Font.PLAIN, 15));
+			
+			//Set listener for button
+			noAccess.addActionListener(e -> {
+				try {
+					//Toggle the access
+					toggleUserAccess(user.id, true);
+					//Switch the button and update the UI
+					userPanel.remove(noAccess); 
+					userPanel.add(hasAccess); 
+					userPanel.updateUI();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			});
 			
 			if(user.access) userPanel.add(hasAccess); 
 			else userPanel.add(noAccess);	
@@ -330,6 +370,41 @@ public class GUI {
 		return userListPanel;
 	}
 	
+	//Toggles the user's access button
+	private static void toggleUserAccess(int id, boolean access) throws Exception{
+		String docId = null;
+
+		ApiFuture<QuerySnapshot> query = db.collection("Users").get();
+		long lId = Integer.toUnsignedLong(id);
+		
+		try {
+		    // Get the query results
+		    QuerySnapshot querySnapshot = query.get();
+		    for (QueryDocumentSnapshot document : querySnapshot.getDocuments()) {
+		        if (document.get("id").equals(lId)) {
+		        	//Find the document where the id is stored at
+		            docId = document.getId();
+		        }
+		    }
+		} catch (InterruptedException | ExecutionException e) {
+		    e.printStackTrace();
+		}
+		
+		DocumentReference documentRef = db.collection("Users").document(docId);
+		// Create a WriteBatch to perform the update
+		WriteBatch batch = db.batch();
+		// Update the "access" field to a new value
+		batch.update(documentRef, "access", access);
+		
+		try {
+		    // Commit the batch to apply the changes
+		    ApiFuture<List<WriteResult>> future = batch.commit();
+		    future.get(); // Wait for the operation to complete
+		} catch (Exception e) {
+		    e.printStackTrace();
+		}
+	}
+
 	//Render the list of user logs
 	public static JPanel renderUserHistory(ArrayList<UserLog> userLogArray){
 		
@@ -340,19 +415,19 @@ public class GUI {
 		JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 		headerPanel.setBackground(Color.white);
 		
-		JLabel headerName = new JLabel("Name");
+		JLabel headerName = new JLabel("    Name");
 		headerName.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerName.setPreferredSize(new Dimension(200, 30));
+		headerName.setPreferredSize(new Dimension(150, 30));
 		headerPanel.add(headerName);
 		
-		JLabel headerType = new JLabel("In/Out");
+		JLabel headerType = new JLabel("   In/Out");
 		headerType.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerType.setPreferredSize(new Dimension(50, 30));
+		headerType.setPreferredSize(new Dimension(100, 30));
 		headerPanel.add((headerType));
 		
-		JLabel headerId = new JLabel("ID");
+		JLabel headerId = new JLabel("   ID");
 		headerId.setFont(new Font("Serif", Font.PLAIN, 20));
-		headerId.setPreferredSize(new Dimension(50, 30));
+		headerId.setPreferredSize(new Dimension(100, 30));
 		headerPanel.add((headerId));
 		
 		JLabel headerButtonLabel = new JLabel("Timestamp");
@@ -371,7 +446,7 @@ public class GUI {
 			
 			JLabel name = new JLabel(log.name);
 			name.setFont(new Font("Serif", Font.PLAIN, 20));
-			name.setPreferredSize(new Dimension(200, 30));
+			name.setPreferredSize(new Dimension(150, 30));
 			userPanel.add(name);
 			
 			JLabel in_out = new JLabel(log.in_out);
@@ -381,7 +456,7 @@ public class GUI {
 			
 			JLabel id = new JLabel(((Integer.toString(log.id))));
 			id.setFont(new Font("Serif", Font.PLAIN, 20));
-			id.setPreferredSize(new Dimension(50, 30));
+			id.setPreferredSize(new Dimension(100, 30));
 			userPanel.add((id));
 			
 			JLabel ts = new JLabel((log.timestamp).toString().substring(0, 19));
