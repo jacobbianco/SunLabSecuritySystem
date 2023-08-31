@@ -182,10 +182,10 @@ public class GUI {
 		headerContainer.add(headerLabel);
 		mainPanel.add(headerContainer);
 		
-		JLabel idLabel = new JLabel("        Filter by ID( Ex: 1 ):");
+		JLabel idLabel = new JLabel("       Filter by ID( Ex: 468290571 ):");
 		idLabel.setFont(new Font("Serif", Font.PLAIN, 20));
-		JTextField id = new JTextField(4);
-		id.setPreferredSize(new Dimension(30,30));
+		JTextField id = new JTextField(9);
+		id.setPreferredSize(new Dimension(50,30));
 		id.setFont(new Font("Serif", Font.PLAIN, 20));
 		JPanel idContainer = new JPanel();
 		idContainer.setBackground(Color.WHITE);
